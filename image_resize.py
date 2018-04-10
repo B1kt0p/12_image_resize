@@ -53,29 +53,55 @@ def open_image(image_path):
     return image
 
 
-def get_width_and_height_output(
+def get_size_output(
         width_original,
         height_original,
         width_output=None,
         height_output=None,
         scale=None
 ):
-    original_proportion = width_original / height_original
-
     if scale and not (width_output or width_output):
-        if scale < 0:
-            return (
-                int(width_original/abs(scale)),
-                int(height_original/abs(scale))
-            )
-        elif scale > 0:
-            return int(width_original*scale), int(height_original*scale)
+        return get_size_by_scale(
+            scale,
+            width_original,
+            height_original
+        )
     elif not scale and (width_output or height_output):
-        if width_output and not height_output:
-            height_output = int(width_output / original_proportion)
-        elif not width_output and height_output:
-            width_output = int(height_output * original_proportion)
-        return height_output, width_output
+        return get_size_by_width_or_height(
+            width_original,
+            height_original,
+            width_output=width_output,
+            height_output=height_output
+        )
+
+
+def get_size_by_scale(scale, width_original, height_original):
+    if scale < 0:
+        size_output = (
+            int(width_original / abs(scale)) or 1,
+            int(height_original / abs(scale)) or 1
+        )
+        return size_output
+    elif scale > 0:
+        size_output = (
+            int(width_original * scale) or 1,
+            int(height_original * scale) or 1
+        )
+        return size_output
+
+
+def get_size_by_width_or_height(
+        width_original,
+        height_original,
+        width_output=None,
+        height_output=None
+):
+    original_proportion = width_original / height_original
+    if width_output and not height_output:
+        height_output = int(width_output / original_proportion) or 1
+    elif not width_output and height_output:
+        width_output = int(height_output * original_proportion) or 1
+    return width_output, height_output
 
 
 def resize_image(
@@ -87,20 +113,21 @@ def resize_image(
     original_image = open_image(path_to_original)
     if original_image:
         width_original, height_original = original_image.size
-        size_output = get_width_and_height_output(
+        size_output = get_size_output(
             width_original,
             height_original,
             width_output=width,
             height_output=height,
             scale=scale
         )
-        if size_output and 0 not in size_output:
-            output_image = original_image.resize(size_output)
-            if not is_proportion_preserved(output_image,
-                                        width_original,
-                                        height_original):
+        if size_output:
+            if not is_proportion_preserved(
+                    size_output,
+                    width_original,
+                    height_original
+            ):
                 print('Image proportions do not match the original!')
-            return output_image
+            return original_image.resize(size_output)
 
 
 def save_output_image(image_path, output_image, output_path=None):
@@ -115,14 +142,16 @@ def save_output_image(image_path, output_image, output_path=None):
         )
     return output_image.save(output_path)
 
+
 def is_proportion_preserved(
-        output_image,
-        height_original,
-        width_original
+        size_output,
+        width_original,
+        height_original
+
 ):
-    output_width, output_height = output_image.size
-    output_proportion = int(output_width/output_height)
-    original_proportion = int(width_original/height_original)
+    output_width, output_height = size_output
+    output_proportion = round(output_width/output_height, 2)
+    original_proportion = round(width_original/height_original, 2)
     if output_proportion == original_proportion:
         return True
 
@@ -136,8 +165,10 @@ if __name__ == '__main__':
         scale=args.scale
     )
     if output_image:
-        rt = save_output_image(
+        save_output_image(
             args.image, output_image,
             output_path=args.output
         )
         print('Image successfully saved!')
+    else:
+        print('Invalid command line parameters entered')
