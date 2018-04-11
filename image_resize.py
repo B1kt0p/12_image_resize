@@ -1,5 +1,6 @@
 import argparse
 from PIL import Image
+from os import path
 
 
 def get_args():
@@ -28,7 +29,7 @@ def get_args():
         '--scale',
         '-s',
         help='how many times increase the image',
-        type=float
+        type=positive_float
     )
     parser.add_argument(
         '--output',
@@ -45,12 +46,23 @@ def positive_int(arg):
         raise argparse.ArgumentTypeError
 
 
+def positive_float(arg):
+    try:
+        float_arg = float(arg)
+        if float_arg > 0:
+            return float_arg
+        else:
+            raise argparse.ArgumentTypeError
+    except ValueError:
+        raise argparse.ArgumentTypeError
+
+
 def open_image(image_path):
     try:
         image = Image.open(image_path)
+        return image
     except IOError:
         return None
-    return image
 
 
 def get_size_output(
@@ -61,86 +73,26 @@ def get_size_output(
         scale=None
 ):
     if scale and not (width_output or width_output):
-        return get_size_by_scale(
-            scale,
-            width_original,
-            height_original
-        )
-    elif not scale and (width_output or height_output):
-        return get_size_by_width_or_height(
-            width_original,
-            height_original,
-            width_output=width_output,
-            height_output=height_output
-        )
-
-
-def get_size_by_scale(scale, width_original, height_original):
-    if scale < 0:
-        size_output = (
-            int(width_original / abs(scale)) or 1,
-            int(height_original / abs(scale)) or 1
-        )
-        return size_output
-    elif scale > 0:
-        size_output = (
+        output_size = (
             int(width_original * scale) or 1,
             int(height_original * scale) or 1
         )
-        return size_output
-
-
-def get_size_by_width_or_height(
-        width_original,
-        height_original,
-        width_output=None,
-        height_output=None
-):
+        return output_size
     original_proportion = width_original / height_original
     if width_output and not height_output:
-        height_output = int(width_output / original_proportion) or 1
+            height_output = int(width_output / original_proportion) or 1
     elif not width_output and height_output:
-        width_output = int(height_output * original_proportion) or 1
+            width_output = int(height_output * original_proportion) or 1
     return width_output, height_output
 
 
 def resize_image(
-        path_to_original,
-        width=None,
-        height=None,
-        scale=None
+        original_image,
+        size_output
+
 ):
-    original_image = open_image(path_to_original)
-    if original_image:
-        width_original, height_original = original_image.size
-        size_output = get_size_output(
-            width_original,
-            height_original,
-            width_output=width,
-            height_output=height,
-            scale=scale
-        )
-        if size_output:
-            if not is_proportion_preserved(
-                    size_output,
-                    width_original,
-                    height_original
-            ):
-                print('Image proportions do not match the original!')
-            return original_image.resize(size_output)
+    return original_image.resize(size_output)
 
-
-def save_output_image(image_path, output_image, output_path=None):
-    width_output, height_output = output_image.size
-    if output_path is None:
-        name_image_original, format_image_original = image_path.split('.')
-        output_path = '{name}__{width}x{height}.{format}'.format(
-            name=name_image_original,
-            width=width_output,
-            height=height_output,
-            format=format_image_original
-        )
-    return output_image.save(output_path)
 
 
 def is_proportion_preserved(
@@ -156,19 +108,44 @@ def is_proportion_preserved(
         return True
 
 
+def save_output_image(image_path, output_image, output_path=None):
+    width_output, height_output = output_image.size
+    if not output_path:
+        name_image_original, format_image_original = path.splitext(image_path)
+        output_path = '{name}__{width}x{height}{format}'.format(
+        name=name_image_original,
+        width=width_output,
+        height=height_output,
+        format=format_image_original
+        )
+    return output_image.save(output_path)
+
+
 if __name__ == '__main__':
     args = get_args()
-    output_image = resize_image(
-        args.image,
-        width=args.width,
-        height=args.height,
-        scale=args.scale
-    )
-    if output_image:
-        save_output_image(
-            args.image, output_image,
-            output_path=args.output
-        )
+    original_image = open_image(args.image)
+    if original_image:
+        width_original, height_original = original_image.size
+        size_output = get_size_output(
+            width_original,
+            height_original,
+            width_output=args.width,
+            height_output=args.height,
+            scale=args.scale)
+        if None in size_output:
+            exit('Invalid output image size!')
+        output_image = original_image.resize(size_output)
+        try:
+            save_output_image(
+                args.image, output_image, output_path=args.output)
+        except ValueError:
+            exit('Unknown file extension!')
+        if not is_proportion_preserved(
+                size_output,
+                width_original,
+                height_original
+        ):
+             print('The proportions do not match the original image!')
         print('Image successfully saved!')
     else:
-        print('Invalid command line parameters entered')
+        exit('Can not open image!')

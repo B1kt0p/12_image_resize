@@ -28,20 +28,20 @@ not match the original image.
 
 * If the path to the final file is not specified,
  the result is placed next to the source file. 
- In this case, the file is called pic.jpg (100x200), 
- then after the python image_resize.py --scale
-  2 pic.jpg file pic__200x400.jpg appears.
+ In this case, the file is called  **pic.jpg (100x200)** , 
+ then after the python **image_resize.py --scale
+  2 pic.jpg** file **pic__200x400.jpg** appears.
 
 # Get started:
 An example of running a script in Linux, Python 3.5
  on other operating systems
  is also:
 ```bash
-$ python3 image_resize.py -i 111.jpg  -s -2
+$ python3 image_resize.py -i 111.jpg  -s 2
 Image successfully saved!
 
 $ python3 image_resize.py -i 111.jpg  -w 10 -hgt 200
-Image proportions do not match the original!
+The proportions do not match the original image!
 Image successfully saved!
 ```
 
