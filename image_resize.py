@@ -94,12 +94,10 @@ def resize_image(
     return original_image.resize(size_output)
 
 
-
 def is_proportion_preserved(
         size_output,
         width_original,
         height_original
-
 ):
     output_width, output_height = size_output
     output_proportion = round(output_width/output_height, 2)
@@ -108,23 +106,31 @@ def is_proportion_preserved(
         return True
 
 
+def resize_image(original_image, size_output):
+    if not (None in size_output):
+        return original_image.resize(size_output)
+
+
 def save_output_image(image_path, output_image, output_path=None):
     width_output, height_output = output_image.size
     if not output_path:
         name_image_original, format_image_original = path.splitext(image_path)
         output_path = '{name}__{width}x{height}{format}'.format(
-        name=name_image_original,
-        width=width_output,
-        height=height_output,
-        format=format_image_original
+            name=name_image_original,
+            width=width_output,
+            height=height_output,
+            format=format_image_original
         )
-    return output_image.save(output_path)
+    try:
+        output_image.save(output_path)
+    except ValueError:
+        return None
 
 
 if __name__ == '__main__':
     args = get_args()
     original_image = open_image(args.image)
-    if original_image:
+    if original_image or exit('Can not open image!'):
         width_original, height_original = original_image.size
         size_output = get_size_output(
             width_original,
@@ -132,20 +138,18 @@ if __name__ == '__main__':
             width_output=args.width,
             height_output=args.height,
             scale=args.scale)
-        if None in size_output:
-            exit('Invalid output image size!')
-        output_image = original_image.resize(size_output)
-        try:
-            save_output_image(
-                args.image, output_image, output_path=args.output)
-        except ValueError:
-            exit('Unknown file extension!')
+        output_image = (resize_image(original_image, size_output)
+                        or exit('Invalid image size!')
+                        )
+        save_output_image(
+            args.image,
+            output_image,
+            output_path=args.output
+        ) or exit('Unknown file extension!')
         if not is_proportion_preserved(
                 size_output,
                 width_original,
                 height_original
         ):
-             print('The proportions do not match the original image!')
+            print('The proportions do not match the original image!')
         print('Image successfully saved!')
-    else:
-        exit('Can not open image!')
