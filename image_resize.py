@@ -78,18 +78,15 @@ def get_output_image_size(
             int(original_image_height_ * scale) or 1
         )
         return output_image_size
-    original_proportion = original_image_width / original_image_height_
+    original_proportion = original_image_width / original_image_height
     if output_image_width and not output_image_height:
-            output_image_height = int(output_image_width / original_proportion) or 1
+        output_image_height = int(output_image_width / original_proportion) or 1
     elif not output_image_width and output_image_height:
-            output_image_width = int(output_image_height * original_proportion) or 1
+        output_image_width = int(output_image_height * original_proportion) or 1
     return output_image_width, output_image_height
 
 
-def resize_image(
-        original_image,
-        output_image_size
-):
+def resize_image(original_image, output_image_size):
     return original_image.resize(output_image_size)
 
 
@@ -100,13 +97,15 @@ def is_proportion_preserved(
 ):
     output_image_width, output_image_height = output_image_size
     output_image_proportion = round(output_image_width / output_image_height, 2)
-    original_image_proportion = round(original_image_width / original_image_height, 2)
+    original_image_proportion = round(
+        original_image_width / original_image_height, 2
+    )
     if output_image_proportion == original_image_proportion:
         return True
 
 
 def resize_image(original_image, size_output):
-    if not (None in size_output):
+    if None not in size_output:
         return original_image.resize(size_output)
 
 
@@ -122,7 +121,7 @@ def save_output_image(image_path, output_image, output_path=None):
         )
     try:
         output_image.save(output_path)
-    except ValueError:
+    except (KeyError, IOError):
         return None
 
 
@@ -141,11 +140,12 @@ if __name__ == '__main__':
     output_image = (resize_image(original_image, output_image_size)
                     or exit('Invalid image size!')
                     )
-    save_output_image(
+    (save_output_image(
         args.image,
         output_image,
-        output_path=args.output
-    ) or exit('Unknown file extension!')
+        output_path=args.output)
+     or exit('Unknown file extension!')
+     )
     if not is_proportion_preserved(
             output_image_size,
             original_image_width,
